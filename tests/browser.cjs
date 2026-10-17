@@ -11,6 +11,7 @@ const fs = require('node:fs');
             const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width, height: 1000 } });
             const page = await context.newPage();
             await page.goto((process.env.MW_URL || 'http://127.0.0.1:8080') + '/index.php?title=Charts_demo', { waitUntil: 'networkidle' });
+            await page.screenshot({ path: `tests/artifacts/gallery-${width}.png`, fullPage: true });
             assert.equal(await page.locator('.scribunto-chart').count(), 9, 'all chart instances render without JavaScript');
             assert.equal(await page.locator('.scribunto-error, .scribunto-chart-error').count(), 0);
             const shapes = await page.locator('.sc-round, .sc-gauge').evaluateAll(nodes => nodes.map(node => {
@@ -19,7 +20,7 @@ const fs = require('node:fs');
             }));
             for (const shape of shapes) {
                 assert.ok(shape.width > 80 && shape.height > 40, 'CSS sizing survives the wiki parser');
-                assert.ok(Math.abs(shape.width / shape.height - (shape.gauge ? 2 : 1)) < 0.03, 'correct circular/semicircular proportions');
+                assert.ok(Math.abs(shape.width / shape.height - (shape.gauge ? 2 : 1)) < 0.03, 'correct circular/semicircular proportions: ' + JSON.stringify(shape));
             }
             const backgrounds = await page.locator('.sc-round, .sc-gauge-arc').evaluateAll(nodes => nodes.map(node => getComputedStyle(node).backgroundImage));
             assert.equal(backgrounds.filter(value => value.includes('conic-gradient')).length, 5, 'two distributions and three gauges have gradients; zero donut has none');
@@ -32,7 +33,6 @@ const fs = require('node:fs');
             const text = await page.locator('#mw-content-text').innerText();
             assert.ok(!text.includes('<thead>') && !text.includes('<tbody>'), 'no escaped unsupported table tags');
             assert.ok(text.includes('Outside the scale') && text.includes('125'), 'out-of-range value remains readable');
-            await page.screenshot({ path: `tests/artifacts/gallery-${width}.png`, fullPage: true });
             console.log(`PASS: ${width}px, JavaScript disabled, shapes / gradients / data / overflow`);
             await context.close();
         }

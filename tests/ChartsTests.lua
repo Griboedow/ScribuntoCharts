@@ -85,7 +85,7 @@ function p.run()
     invalid({}, 'Provide at least one')
     invalid(nil, 'configuration table')
     html = charts.donut({ args = { title = ' Frame ', value1 = ' 2 ', value2 = ' 3 ', label2 = '', type = 'bars' } })
-    check(contains(html, 'sc-donut') and contains(html, 'Item 2') and contains(html, '>Frame<'), 'frame trimming and fixed entry point')
+    check(contains(html, 'sc-chart-donut') and contains(html, 'Item 2') and contains(html, '>Frame<'), 'frame trimming and fixed entry point')
     html = charts.chart({ args = { type = 'progress', value = '50' } })
     check(contains(html, 'sc-progress'), 'generic frame entry point')
     return 'PASS: ' .. count .. ' chart assertions'

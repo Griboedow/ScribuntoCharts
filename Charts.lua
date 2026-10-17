@@ -230,7 +230,7 @@ end
 
 local function render(config)
     local o = options(config)
-    local root = mw.html.create('div'):addClass('scribunto-chart sc-' .. o.kind):css({ width = '100%', ['max-width'] = cssnum(o.size + 40) .. 'px', ['box-sizing'] = 'border-box', padding = '20px', margin = '1em 0', background = o.bg, color = o.ink, border = '1px solid ' .. o.track, ['border-radius'] = '16px', ['font-family'] = 'inherit', ['line-height'] = '1.5' })
+    local root = mw.html.create('div'):addClass('scribunto-chart sc-chart-' .. o.kind):css({ width = '100%', ['max-width'] = cssnum(o.size + 40) .. 'px', ['box-sizing'] = 'border-box', padding = '20px', margin = '1em 0', background = o.bg, color = o.ink, border = '1px solid ' .. o.track, ['border-radius'] = '16px', ['font-family'] = 'inherit', ['line-height'] = '1.5' })
     if o.title ~= '' then literal(div(root, 'sc-title', { ['font-size'] = '1.05em', ['font-weight'] = '700', ['margin-bottom'] = '18px', ['overflow-wrap'] = 'anywhere' }), o.title) end
     if o.kind == 'donut' or o.kind == 'pie' then roundChart(root, o)
     elseif o.kind == 'bars' then bars(root, o)

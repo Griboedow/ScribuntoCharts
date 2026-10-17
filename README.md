@@ -12,6 +12,8 @@ service, images, canvas, or client-side chart library is required.
 
 [View the full gallery screenshot](docs/gallery.jpg) · [Copy the gallery wikitext](examples/Gallery.wikitext)
 
+[Advanced gallery: columns, grouped, bullet, heatmap and Gantt](docs/advanced-gallery.jpg) · [Copy these examples](examples/Advanced.wikitext)
+
 ## Install
 
 1. Enable **Scribunto** on your MediaWiki installation.
@@ -194,6 +196,8 @@ example above. Structured `columns` and `rows` arrays replace the corresponding
 numbered arguments. Change `type` to `heatmap` to visualize the same data as cells.
 
 ## Gantt: dates and task completion
+
+![Heatmap and Gantt on MediaWiki](docs/heatmap-gantt.jpg)
 
 ```wikitext
 {{#invoke:Charts|gantt|title=Release schedule

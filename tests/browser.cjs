@@ -34,6 +34,35 @@ const fs = require('node:fs');
             assert.ok(!text.includes('<thead>') && !text.includes('<tbody>'), 'no escaped unsupported table tags');
             assert.ok(text.includes('Outside the scale') && text.includes('125'), 'out-of-range value remains readable');
             console.log(`PASS: ${width}px, JavaScript disabled, shapes / gradients / data / overflow`);
+            await page.goto((process.env.MW_URL || 'http://127.0.0.1:8080') + '/index.php?title=Charts_advanced', { waitUntil: 'networkidle' });
+            await page.screenshot({ path: `tests/artifacts/advanced-${width}.png`, fullPage: true });
+            assert.equal(await page.locator('.scribunto-chart').count(), 5);
+            assert.equal(await page.locator('.scribunto-error, .scribunto-chart-error').count(), 0);
+            const heights = await page.locator('.sc-column').evaluateAll(nodes => nodes.map(n => n.getBoundingClientRect().height / n.parentElement.clientHeight));
+            const expectedHeights = [0.25, 0.5, 1, 0.4, 0.3, 0.6, 0.65, 0.8, 0.75];
+            assert.equal(heights.length, expectedHeights.length);
+            heights.forEach((ratio, i) => assert.ok(Math.abs(ratio - expectedHeights[i]) < 0.015, 'common column scale'));
+            const taskGeometry = await page.locator('.sc-task-bar').evaluateAll(nodes => nodes.map(n => {
+                const bar = n.getBoundingClientRect(), track = n.parentElement.getBoundingClientRect();
+                return { left: (bar.left - track.left) / track.width, width: bar.width / track.width };
+            }));
+            assert.equal(taskGeometry.length, 3);
+            taskGeometry.forEach((bar, i) => {
+                assert.ok(Math.abs(bar.left - [0, 0.2, 0.9][i]) < 0.01, 'Gantt task offset');
+                assert.ok(Math.abs(bar.width - [0.3, 0.6, 0.1][i]) < 0.01, 'inclusive Gantt durations');
+            });
+            const marker = await page.locator('.sc-target').evaluate(n => parseFloat(getComputedStyle(n).left) / n.parentElement.clientWidth);
+            assert.ok(Math.abs(marker - 0.85) < 0.01, 'bullet target is distinct from actual value');
+            const heat = await page.locator('.sc-heat-cell').evaluateAll(nodes => nodes.map(n => ({ value: n.textContent, background: getComputedStyle(n).backgroundColor, color: getComputedStyle(n).color })));
+            assert.equal(heat.length, 21);
+            assert.ok(heat.filter(n => n.value === '0').every(n => n.background === 'rgb(255, 255, 255)' && n.color === 'rgb(0, 0, 0)'));
+            assert.ok(heat.some(n => n.value === '20' && n.background === 'rgb(15, 118, 110)' && n.color === 'rgb(255, 255, 255)'));
+            const advancedSizes = await page.locator('.scribunto-chart').evaluateAll(nodes => nodes.map(n => ({ scroll: n.scrollWidth, client: n.clientWidth, right: n.getBoundingClientRect().right })));
+            advancedSizes.forEach(s => assert.ok(s.scroll <= s.client + 1 && s.right <= width + 1, 'advanced cards contain wide data'));
+            if (width === 390) {
+                assert.ok(await page.locator('.sc-chart-heatmap .sc-scroll').evaluate(n => n.scrollWidth > n.clientWidth), 'wide heatmap scrolls inside its card');
+            }
+            console.log(`PASS: ${width}px, five advanced charts, scales / dates / targets / heatmap contrast`);
             await context.close();
         }
     } finally {

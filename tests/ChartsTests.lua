@@ -88,6 +88,74 @@ function p.run()
     check(contains(html, 'sc-chart-donut') and contains(html, 'Item 2') and contains(html, '>Frame<'), 'frame trimming and fixed entry point')
     html = charts.chart({ args = { type = 'progress', value = '50' } })
     check(contains(html, 'sc-progress'), 'generic frame entry point')
+    html = valid({ type = 'columns', value1 = 10, value2 = 20, max = 40 })
+    check(contains(html, 'height:25.000000%') and contains(html, 'height:50.000000%'), 'columns use shared explicit scale')
+    valid({ type = 'columns', value1 = 0 })
+    invalid({ type = 'columns', value1 = 10, max = 5 }, 'cover every value')
+    invalid({ type = 'columns', value1 = 0, max = 0 }, 'positive')
+    invalid({ type = 'columns', value1 = 1, height = 500 }, 'Height must')
+    local matrix = { { label = 'A', values = { 10, 20 } }, { label = 'B', values = { 40, 0 } } }
+    html = valid({ type = 'grouped', columns = { 'Plan', { label = 'Actual', color = '#123456' } }, rows = matrix, max = 80 })
+    check(contains(html, 'height:12.500000%') and contains(html, 'height:50.000000%'), 'groups share scale across rows')
+    check(contains(html, '#123456') and contains(html, 'scope="col"'), 'series colors and accessible matrix')
+    html = valid({ type = 'heatmap', column1 = 'Mon', column2 = 'Tue', row1 = '0,20', color = '#000', max = 20 })
+    check(contains(html, 'background:#ffffff') and contains(html, 'background:#000000'), 'heatmap zero and max endpoints')
+    check(contains(html, 'color:#ffffff') and contains(html, 'color:#000000'), 'heatmap contrast')
+    html = valid({ type = 'heatmap', column1 = 'A', row1 = '0' })
+    check(contains(html, 'No positive values'), 'empty heatmap notice')
+    for _, kind in ipairs({ 'grouped', 'heatmap' }) do
+        invalid({ type = kind, column1 = 'A', column2 = 'B', row1 = '1' }, 'Row width')
+        invalid({ type = kind, column1 = 'A', row1 = '1,2' }, 'Row width')
+        invalid({ type = kind, column1 = 'A', row1 = '-1' }, 'non-negative')
+        invalid({ type = kind, column1 = 'A', row1 = '1', row3 = '2' }, 'missing item 2')
+        invalid({ type = kind, column2 = 'A', row1 = '1' }, 'missing item 1')
+        invalid({ type = kind, column1 = 'A', row1 = '1', max = 0 }, 'positive')
+        invalid({ type = kind, column1 = 'A', row1 = 'nan' }, 'finite number')
+        invalid({ type = kind, column1 = 'A', column2 = 'B', row1 = '1,' }, 'finite number')
+        invalid({ type = kind, column13 = 'A', row1 = '1' }, 'too many items')
+        invalid({ type = kind, column1 = 'A', row31 = '1' }, 'too many items')
+        invalid({ type = kind, columns = { 'A' }, rows = { { values = { [1] = 1, other = 2 } } } }, 'Row width')
+    end
+    html = valid({ type = 'bullet', value = 72, target = 85 })
+    check(contains(html, 'width:72.000000%') and contains(html, 'left:85.000000%'), 'bullet value and target differ')
+    html = valid({ type = 'bullet', min = -50, max = 50, value = 100, target = 0, lang = 'ru' })
+    check(contains(html, 'left:50.000000%') and contains(html, 'Цель') and contains(html, '>100<'), 'bullet negative scale and unclipped text')
+    valid({ type = 'bullet', value = 0, target = 0 })
+    valid({ type = 'bullet', value = 100, target = 100 })
+    invalid({ type = 'bullet', value = 1 }, 'Target must')
+    invalid({ type = 'bullet', value = 1, target = 101 }, 'Target must')
+    html = valid({ type = 'gantt', from = '2028-02-28', to = '2028-03-08', tasks = {
+        { label = 'Build', start = '2028-02-28', finish = '2028-03-01', progress = 100 },
+        { label = 'Release', start = '2028-03-08', finish = '2028-03-08' }
+    } })
+    check(contains(html, 'width:30.000000%'), 'Gantt includes leap day and final day')
+    check(contains(html, 'left:90.000000%') and contains(html, 'width:10.000000%'), 'last-day task has visible one-day duration')
+    html = valid({ type = 'gantt', start1 = '2026-12-31', finish1 = '2027-01-01', progress1 = 25 })
+    check(contains(html, 'width:100.000000%') and contains(html, 'width:25.000000%'), 'automatic Gantt bounds and progress')
+    valid({ type = 'gantt', start1 = '2000-02-29', finish1 = '2000-02-29' })
+    for _, badDate in ipairs({ '2027-02-29', '1900-02-29', '2026-04-31', '2026-13-01', '2026-01-00', '0000-01-01', '2026-1-1', '<script>' }) do
+        invalid({ type = 'gantt', start1 = badDate, finish1 = '2028-01-01' }, 'Invalid date')
+    end
+    invalid({ type = 'gantt', start1 = '2026-01-02', finish1 = '2026-01-01' }, 'must not precede')
+    invalid({ type = 'gantt', start1 = '2026-01-01', finish1 = '2026-01-02', from = '2026-01-02' }, 'cover every task')
+    invalid({ type = 'gantt', start1 = '2026-01-01', finish1 = '2026-01-01', progress1 = 101 }, 'Task progress')
+    invalid({ type = 'gantt', start1 = '2026-01-01', finish1 = '2026-01-01', start3 = '2026-01-02', finish3 = '2026-01-02' }, 'missing item 2')
+    invalid({ type = 'gantt', start31 = '2026-01-01', finish31 = '2026-01-01' }, 'too many items')
+    local manyColumns, manyRows = {}, {}
+    for j = 1, 12 do manyColumns[j] = 'Column ' .. j end
+    for i = 1, 30 do
+        local values = {}
+        for j = 1, 12 do values[j] = i * j end
+        manyRows[i] = { label = 'Row ' .. i, values = values }
+    end
+    html = valid({ type = 'heatmap', columns = manyColumns, rows = manyRows })
+    local _, cells = html:gsub('sc%-heat%-cell', '')
+    check(cells == 360, 'maximum matrix preserves all 360 cells')
+    html = valid({ type = 'grouped', column1 = '<script>', label1 = '[[Category:Bad]]', row1 = '2' })
+    check(not contains(html, '<script>') and not contains(html, '[[Category:Bad]]'), 'matrix text is escaped')
+    for _, kind in ipairs({ 'columns', 'grouped', 'heatmap', 'bullet', 'gantt' }) do
+        check(type(charts[kind]) == 'function', 'public entry point ' .. kind)
+    end
     return 'PASS: ' .. count .. ' chart assertions'
 end
 return p

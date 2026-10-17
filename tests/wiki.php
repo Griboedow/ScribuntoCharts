@@ -14,7 +14,8 @@ class ChartsIntegrationTest extends Maintenance {
         $user = $services->getUserFactory()->newFromName( 'Admin' );
         RequestContext::getMain()->setUser( $user );
         $files = [ 'Module:Charts' => 'Charts.lua', 'Module:ChartsTests' => 'tests/ChartsTests.lua',
-            'Module:ChartData' => 'examples/ChartData.lua', 'Charts demo' => 'examples/Gallery.wikitext' ];
+            'Module:ChartData' => 'examples/ChartData.lua', 'Charts demo' => 'examples/Gallery.wikitext',
+            'Charts advanced' => 'examples/Advanced.wikitext' ];
         foreach ( $files as $name => $file ) {
             $title = MediaWiki\Title\Title::newFromText( $name );
             $page = $services->getWikiPageFactory()->newFromTitle( $title );
@@ -57,6 +58,15 @@ class ChartsIntegrationTest extends Maintenance {
             $this->fatalError( 'Literal label handling failed' );
         }
         $this->output( "PASS: real parser CSS, accessibility markup, gallery and Lua caller\n" );
+        $advanced = $parse( file_get_contents( __DIR__ . '/../examples/Advanced.wikitext' ) );
+        foreach ( [ 'sc-columns', 'sc-matrix', 'sc-heat-cell', 'sc-task-bar', 'sc-target', 'linear-gradient(' ] as $needle ) {
+            if ( strpos( $advanced, $needle ) === false ) { $this->fatalError( 'Advanced parser lost: ' . $needle ); }
+        }
+        if ( strpos( $advanced, 'scribunto-error' ) !== false || strpos( $advanced, 'scribunto-chart-error' ) !== false ) {
+            $this->fatalError( $advanced );
+        }
+        $services->getWikiPageFactory()->newFromTitle( MediaWiki\Title\Title::newFromText( 'Charts advanced' ) )->doPurge();
+        $this->output( "PASS: advanced chart parser output\n" );
         $services->getWikiPageFactory()->newFromTitle(
             MediaWiki\Title\Title::newFromText( 'Charts demo' )
         )->doPurge();

@@ -27,8 +27,10 @@ class ChartsIntegrationTest extends Maintenance {
             DeferredUpdates::doUpdates();
         }
         $parse = static function ( $text ) use ( $services ) {
-            return $services->getParserFactory()->create()->parse( $text,
-                MediaWiki\Title\Title::newFromText( 'Charts demo' ), ParserOptions::newFromAnon() )->getText();
+            $options = ParserOptions::newFromAnon();
+            $output = $services->getParserFactory()->create()->parse( $text,
+                MediaWiki\Title\Title::newFromText( 'Charts demo' ), $options );
+            return $output->runOutputPipeline( $options )->getContentHolderText();
         };
         $result = $parse( '{{#invoke:ChartsTests|run}}' );
         if ( !preg_match( '/PASS: \d+ chart assertions/', $result, $match ) ) {

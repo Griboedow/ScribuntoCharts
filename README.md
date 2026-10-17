@@ -7,6 +7,10 @@ horizontal bars, a stacked bar, and a progress indicator. Charts are rendered by
 Scribunto as HTML and inline CSS. No TemplateStyles, API extension, external
 service, images, canvas, or client-side chart library is required.
 
+![Gauge and bars rendered on MediaWiki 1.43](docs/gauge-bars.jpg)
+
+[View the full gallery screenshot](docs/gallery.jpg) · [Copy the gallery wikitext](examples/Gallery.wikitext)
+
 ## Install
 
 1. Enable **Scribunto** on your MediaWiki installation.

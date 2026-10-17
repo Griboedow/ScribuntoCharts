@@ -63,6 +63,21 @@ const fs = require('node:fs');
                 assert.ok(await page.locator('.sc-chart-heatmap .sc-scroll').evaluate(n => n.scrollWidth > n.clientWidth), 'wide heatmap scrolls inside its card');
             }
             console.log(`PASS: ${width}px, five advanced charts, scales / dates / targets / heatmap contrast`);
+            await page.goto((process.env.MW_URL || 'http://127.0.0.1:8080') + '/index.php?title=Charts_leaderboard', { waitUntil: 'networkidle' });
+            await page.screenshot({ path: `tests/artifacts/leaderboard-${width}.png`, fullPage: true });
+            assert.equal(await page.locator('.sc-chart-leaderboard').count(), 3);
+            assert.equal(await page.locator('.scribunto-error, .scribunto-chart-error').count(), 0);
+            const rankings = await page.locator('.sc-ranking').evaluateAll(tables => tables.map(t => ({
+                labels: [...t.querySelectorAll('.sc-ranking-label')].map(n => n.textContent),
+                ranks: [...t.querySelectorAll('.sc-ranking-row')].map(n => n.getAttribute('data-rank')),
+                trophies: t.querySelectorAll('.sc-trophy').length
+            })));
+            assert.deepEqual(rankings[0], { labels: ['Совы', 'Рыси', 'Лисы'], ranks: ['1','2','3'], trophies: 1 });
+            assert.deepEqual(rankings[1], { labels: ['Аня', 'Борис', 'Вера'], ranks: ['1','1','3'], trophies: 2 });
+            assert.deepEqual(rankings[2], { labels: ['Команда B', 'Команда C', 'Команда A'], ranks: ['1','2','3'], trophies: 0 });
+            const rankingSizes = await page.locator('.sc-chart-leaderboard').evaluateAll(nodes => nodes.map(n => ({ scroll: n.scrollWidth, client: n.clientWidth, right: n.getBoundingClientRect().right })));
+            rankingSizes.forEach(s => assert.ok(s.scroll <= s.client + 1 && s.right <= width + 1, 'leaderboard stays within viewport'));
+            console.log(`PASS: ${width}px, leaderboard sorting / ties / optional trophies`);
             await context.close();
         }
     } finally {

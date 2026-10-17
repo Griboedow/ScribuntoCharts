@@ -1,0 +1,16 @@
+= Leaderboards =
+Ranked values with optional first-place trophies. All charts use CSS and Lua only.
+
+<div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
+{{#invoke:Charts|leaderboard|title=Командный рейтинг|lang=ru|trophy=yes|unit=баллов|size=300
+ |label1=Лисы|value1=72|color1=#f59e0b
+ |label2=Совы|value2=96|color2=#2563eb
+ |label3=Рыси|value3=84|color3=#0d9488
+ |caption=Кубок получает лидер. Данные сортируются автоматически.}}
+{{#invoke:Charts|leaderboard|title=Совместное первое место|lang=ru|trophy=yes|size=300
+ |label1=Аня|value1=100|label2=Борис|value2=100|label3=Вера|value3=80
+ |caption=При равенстве результатов места — 1, 1, 3.}}
+{{#invoke:Charts|leaderboard|title=Время прохождения|lang=ru|order=asc|unit=сек.|size=300
+ |label1=Команда A|value1=45|label2=Команда B|value2=32|label3=Команда C|value3=38
+ |caption=Меньшее время лучше. Кубок выключен по умолчанию.}}
+</div>

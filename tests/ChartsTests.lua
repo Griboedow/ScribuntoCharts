@@ -156,6 +156,27 @@ function p.run()
     for _, kind in ipairs({ 'columns', 'grouped', 'heatmap', 'bullet', 'gantt' }) do
         check(type(charts[kind]) == 'function', 'public entry point ' .. kind)
     end
+    html = valid({ type = 'leaderboard', trophy = true, value1 = 5, label1 = 'First input', value2 = 10, label2 = 'Winner', value3 = 10, label3 = 'Tied winner', value4 = 2, label4 = 'Last' })
+    local _, trophies = html:gsub('class="sc%-trophy"', '')
+    check(trophies == 2, 'all first-place ties receive a trophy')
+    check(contains(html, 'data-rank="3"') and not contains(html, 'data-rank="2"'), 'competition ranks are 1,1,3,4')
+    check(html:find('Winner', 1, true) < html:find('Tied winner', 1, true) and html:find('Tied winner', 1, true) < html:find('First input', 1, true), 'descending ranking and stable ties')
+    html = valid({ type = 'leaderboard', order = 'asc', trophy = 'yes', value1 = 45, label1 = 'Slow', value2 = 32, label2 = 'Fast' })
+    check(html:find('Fast', 1, true) < html:find('Slow', 1, true), 'lower-is-better ranking')
+    check(contains(html, 'width:71.111111%'), 'ranking bars show raw magnitude even for ascending order')
+    for _, trophy in ipairs({ false, 'no', '0', 0 }) do
+        html = valid({ type = 'leaderboard', value1 = 1, trophy = trophy })
+        check(not contains(html, 'sc-trophy'), 'trophy can be disabled')
+    end
+    html = valid({ type = 'leaderboard', value1 = 0, value2 = 0, trophy = true })
+    local _, zeros = html:gsub('class="sc%-trophy"', '')
+    check(zeros == 2 and contains(html, 'width:0.000000%'), 'all-zero ranking is a tie without division by zero')
+    html = valid({ type = 'leaderboard', value1 = 1 })
+    check(not contains(html, 'sc-trophy'), 'trophy off by default')
+    invalid({ type = 'leaderboard', value1 = 1, order = 'other' }, 'Order must')
+    invalid({ type = 'leaderboard', value1 = 1, trophy = 'maybe' }, 'Trophy must')
+    html = valid({ type = 'leaderboard', series = { { label = '<b>Winner</b>', value = 1 } }, lang = 'ru', trophy = true })
+    check(contains(html, 'Место') and not contains(html, '<b>Winner</b>'), 'localized rank and escaped label')
     return 'PASS: ' .. count .. ' chart assertions'
 end
 return p

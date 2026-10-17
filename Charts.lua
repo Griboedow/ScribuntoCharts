@@ -6,7 +6,7 @@ local palettes = {
     forest = { '#047857', '#65a30d', '#0e7490', '#ca8a04', '#7c3aed', '#475569' },
     mono = { '#172554', '#1e40af', '#2563eb', '#60a5fa', '#93c5fd', '#bfdbfe' }
 }
-local kinds = { donut = true, pie = true, gauge = true, bars = true, stacked = true, progress = true, columns = true, grouped = true, bullet = true, heatmap = true, gantt = true }
+local kinds = { donut = true, pie = true, gauge = true, bars = true, stacked = true, progress = true, columns = true, grouped = true, bullet = true, heatmap = true, gantt = true, leaderboard = true }
 local messages = {
     en = { total = 'Total', label = 'Label', value = 'Value', share = 'Share', warning = 'Warning', danger = 'Danger', empty = 'No positive values to plot.', outside = 'Outside the scale; the indicator is clamped to the nearest end.' },
     ru = { total = 'Всего', label = 'Название', value = 'Значение', share = 'Доля', warning = 'Внимание', danger = 'Опасность', empty = 'Нет положительных значений для диаграммы.', outside = 'Значение вне шкалы; указатель ограничен ближайшим краем.' }
@@ -255,6 +255,25 @@ local function options(config)
             o.ceiling = number(config.max, o.largest > 0 and o.largest or 1, 'Maximum')
             if o.ceiling <= 0 or o.ceiling < o.largest then fail('Maximum must be positive and cover every value.') end
         end
+        if o.kind == 'leaderboard' then
+            o.order = text(config.order, 'desc')
+            if o.order ~= 'asc' and o.order ~= 'desc' then fail('Order must be asc or desc.') end
+            local trophy = config.trophy
+            if trophy == nil or trophy == '' or trophy == false or trophy == 'no' or trophy == '0' or trophy == 0 then o.trophy = false
+            elseif trophy == true or trophy == 'yes' or trophy == '1' or trophy == 1 then o.trophy = true
+            else fail('Trophy must be yes or no (or a Lua boolean).') end
+            for i, item in ipairs(o.series) do item.index = i end
+            table.sort(o.series, function(a, b)
+                if a.value == b.value then return a.index < b.index end
+                if o.order == 'asc' then return a.value < b.value end
+                return a.value > b.value
+            end)
+            local rank = 1
+            for i, item in ipairs(o.series) do
+                if i > 1 and item.value ~= o.series[i - 1].value then rank = i end
+                item.rank = rank
+            end
+        end
     end
     return o
 end
@@ -306,6 +325,26 @@ local function bars(root, o)
         literal(line:tag('span'):css('flex-shrink', '0'), o.format(item.value))
         local track = div(row, 'sc-track', { background = o.track, height = '12px', ['border-radius'] = '6px', overflow = 'hidden' })
         div(track, 'sc-bar', { width = percent(o.largest > 0 and item.value / o.largest * 100 or 0), height = '100%', background = item.color })
+    end
+end
+
+local function leaderboard(root, o)
+    local tableNode = root:tag('table'):addClass('sc-ranking'):css({ width = '100%', ['table-layout'] = 'fixed', ['border-collapse'] = 'collapse', ['overflow-wrap'] = 'anywhere', ['font-size'] = '0.9em' })
+    local header = tableNode:tag('tr')
+    for i, label in ipairs({ o.lang == 'ru' and 'Место' or 'Rank', o.messages.label, o.messages.value }) do
+        literal(header:tag('th'):attr('scope', 'col'):css({ width = ({ '18%', '52%', '30%' })[i], ['text-align'] = i == 3 and 'right' or 'left', padding = '6px 4px', color = o.muted, ['font-weight'] = '500' }), label)
+    end
+    for _, item in ipairs(o.series) do
+        local row = tableNode:tag('tr'):addClass('sc-ranking-row'):attr('data-rank', item.rank)
+        literal(row:tag('td'):addClass('sc-rank'):css({ padding = '12px 4px', ['vertical-align'] = 'top', ['font-weight'] = '700' }), item.rank .. '.')
+        local label = row:tag('th'):attr('scope', 'row'):css({ padding = '12px 4px', ['text-align'] = 'left', ['font-weight'] = item.rank == 1 and '700' or '400' })
+        if o.trophy and item.rank == 1 then
+            literal(label:tag('span'):addClass('sc-trophy'):attr('aria-hidden', 'true'):css('margin-right', '6px'), '🏆')
+        end
+        literal(label:tag('span'):addClass('sc-ranking-label'), item.label)
+        local track = div(label, 'sc-ranking-track', { height = '8px', background = o.track, ['border-radius'] = '4px', overflow = 'hidden', ['margin-top'] = '7px' }):attr('aria-hidden', 'true')
+        div(track, 'sc-ranking-bar', { height = '100%', width = percent(o.largest > 0 and item.value / o.largest * 100 or 0), background = item.color })
+        literal(row:tag('td'):addClass('sc-ranking-value'):css({ padding = '12px 4px', ['text-align'] = 'right', ['vertical-align'] = 'top', ['font-variant-numeric'] = 'tabular-nums' }), o.format(item.value))
     end
 end
 
@@ -436,13 +475,14 @@ local function render(config)
     if o.title ~= '' then literal(div(root, 'sc-title', { ['font-size'] = '1.05em', ['font-weight'] = '700', ['margin-bottom'] = '18px', ['overflow-wrap'] = 'anywhere' }), o.title) end
     if o.kind == 'donut' or o.kind == 'pie' then roundChart(root, o)
     elseif o.kind == 'bars' then bars(root, o)
+    elseif o.kind == 'leaderboard' then leaderboard(root, o)
     elseif o.kind == 'stacked' then stacked(root, o)
     elseif o.kind == 'columns' or o.kind == 'grouped' then columns(root, o)
     elseif o.kind == 'gantt' then gantt(root, o)
     elseif o.kind == 'heatmap' then -- the colored data table is the visualization
     else scalar(root, o) end
     if o.rows then matrixTable(root, o) end
-    if o.series then
+    if o.series and o.kind ~= 'leaderboard' then
         if o.total == 0 then literal(div(root, 'sc-empty', { ['margin-top'] = '10px' }), o.messages.empty) end
         literal(div(root, 'sc-summary', { ['margin-top'] = '12px', color = o.muted, ['font-size'] = '0.85em' }), o.centerlabel .. ': ' .. o.format(o.total))
         legend(root, o)

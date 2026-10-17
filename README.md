@@ -1,10 +1,11 @@
 # ScribuntoCharts
 
-**CSS-only charts for MediaWiki. One Lua module, eleven chart types, no JavaScript.**
+**CSS-only charts for MediaWiki. One Lua module, twelve chart types, no JavaScript.**
 
 Donut and pie charts, a semicircular gauge with a needle and threshold bands,
 horizontal and vertical bars, grouped columns, a stacked bar, a progress indicator,
-a bullet chart, a heatmap and Gantt timelines. Charts are rendered by
+a bullet chart, a heatmap, Gantt timelines and ranked leaderboards with optional
+first-place trophies. Charts are rendered by
 Scribunto as HTML and inline CSS. No TemplateStyles, API extension, external
 service, images, canvas, or client-side chart library is required.
 
@@ -125,6 +126,37 @@ of `{ label, value, color }` records, with `value` required. When present, `seri
 supplies the items instead of the numbered arguments. There is also a complete
 [Module:ChartData example](examples/ChartData.lua).
 
+## Leaderboard: an optional first-place trophy
+
+```wikitext
+{{#invoke:Charts|leaderboard|title=Командный рейтинг|lang=ru
+ |trophy=yes|unit=баллов
+ |label1=Лисы|value1=72|color1=#f59e0b
+ |label2=Совы|value2=96|color2=#2563eb
+ |label3=Рыси|value3=84|color3=#0d9488}}
+```
+
+The module sorts participants by score, shows their ranks and draws horizontal
+bars. `trophy=yes` adds **🏆 to every participant tied for first place**.
+The trophy is off by default (`trophy=no`). It is a native Unicode emoji, with
+no image requests or JavaScript; its appearance depends on the device's fonts.
+It is decorative for screen readers: the numeric rank remains accessible.
+
+`order=desc` (default) means highest score wins. Use `order=asc` when a lower
+value is better, such as race times. Bars always represent the original
+magnitude relative to the largest value, so a shorter bar can win in ascending
+mode. Values must be non-negative, as for other series charts.
+
+Ties use competition ranks **1, 1, 3** and keep the original input order. Equal
+values are compared before display rounding, so rounded labels can look equal
+while their ranks differ; increase `decimals` when needed. An all-zero ranking
+is a tie for first place. Colors stay attached to their participants when sorted.
+
+Lua callers use the same `series` array as `bars`/`donut`, with
+`type = 'leaderboard', trophy = true, order = 'desc'`. Lua booleans and `yes`/`no`
+are accepted for `trophy` (also numeric/string `1`/`0`).
+[Copy examples with a winner, a tie and an ascending ranking](examples/Leaderboard.wikitext).
+
 ## Vertical columns and grouped comparisons
 
 ```wikitext
@@ -235,7 +267,7 @@ be subpixel-wide; their full dates and completion remain visible in text.
 
 | Option | Meaning / default |
 |---|---|
-| `type` | `donut` (default), `pie`, `gauge`, `bars`, `stacked`, `progress`, `columns`, `grouped`, `bullet`, `heatmap`, `gantt`. Named entry points fix the type. |
+| `type` | `donut` (default), `pie`, `gauge`, `bars`, `stacked`, `progress`, `columns`, `grouped`, `bullet`, `heatmap`, `gantt`, `leaderboard`. Named entry points fix the type. |
 | `title`, `caption` | Optional plain-text title and description. |
 | `lang` | `en` (default) or `ru` for built-in labels and notices. Validation messages are English. |
 | `unit` | Plain-text suffix shown with values, e.g. `%`, `EUR`, `pages`, `°C`. |
@@ -253,6 +285,8 @@ be subpixel-wide; their full dates and completion remain visible in text.
 | `warning`, `danger` | Gauge thresholds. Default 60% and 85% along the scale. Must satisfy `min < warning < danger < max`. |
 | `lowcolor`, `warncolor`, `highcolor` | Gauge band colors. Defaults: teal, amber, red. |
 | `color` | Progress fill or heatmap maximum color; default first palette color. |
+| `trophy` | Leaderboard only: `yes` to show first-place trophies, `no` (default) to hide them. |
+| `order` | Leaderboard only: `desc` (default, highest wins) or `asc` (lowest wins). |
 
 ## Data and rendering rules
 
@@ -287,14 +321,14 @@ MW_INSTALL_PATH=/path/to/wiki php tests/wiki.php --disposable-wiki
 ```
 
 This overwrites `Module:Charts`, `Module:ChartsTests`, `Module:ChartData` and
-`Charts demo` and `Charts advanced` on that test wiki. It tests calculations, needle endpoints,
+`Charts demo`, `Charts advanced` and `Charts leaderboard` on that test wiki. It tests calculations, needle endpoints,
 clamping, zero totals, invalid data, literal labels, real parser sanitization
 and the examples. [The workflow](.github/workflows/tests.yml) runs the same checks
 in disposable MediaWiki containers. Browser checks additionally load the gallery
 at 1366 px and 390 px with JavaScript **disabled**, verify the shapes and lack of
 page-level horizontal overflow, and save screenshots as workflow artifacts.
 Advanced checks verify column scales, target positions, inclusive Gantt dates,
-heatmap colors and narrow-screen scrolling. Tables and plots may intentionally
+heatmap colors, leaderboard sorting/ties/trophies and narrow-screen scrolling. Tables and plots may intentionally
 scroll inside their own cards.
 Production module code is [Charts.lua](Charts.lua);
 test runners are not needed on your wiki.

@@ -15,7 +15,7 @@ class ChartsIntegrationTest extends Maintenance {
         RequestContext::getMain()->setUser( $user );
         $files = [ 'Module:Charts' => 'Charts.lua', 'Module:ChartsTests' => 'tests/ChartsTests.lua',
             'Module:ChartData' => 'examples/ChartData.lua', 'Charts demo' => 'examples/Gallery.wikitext',
-            'Charts advanced' => 'examples/Advanced.wikitext' ];
+            'Charts advanced' => 'examples/Advanced.wikitext', 'Charts leaderboard' => 'examples/Leaderboard.wikitext' ];
         foreach ( $files as $name => $file ) {
             $title = MediaWiki\Title\Title::newFromText( $name );
             $page = $services->getWikiPageFactory()->newFromTitle( $title );
@@ -67,6 +67,12 @@ class ChartsIntegrationTest extends Maintenance {
         }
         $services->getWikiPageFactory()->newFromTitle( MediaWiki\Title\Title::newFromText( 'Charts advanced' ) )->doPurge();
         $this->output( "PASS: advanced chart parser output\n" );
+        $ranking = $parse( file_get_contents( __DIR__ . '/../examples/Leaderboard.wikitext' ) );
+        if ( strpos( $ranking, 'scribunto-error' ) !== false || strpos( $ranking, 'scribunto-chart-error' ) !== false || substr_count( $ranking, 'class="sc-trophy"' ) !== 3 ) {
+            $this->fatalError( 'Leaderboard parser check failed: ' . $ranking );
+        }
+        $services->getWikiPageFactory()->newFromTitle( MediaWiki\Title\Title::newFromText( 'Charts leaderboard' ) )->doPurge();
+        $this->output( "PASS: leaderboard parser output and trophies\n" );
         $services->getWikiPageFactory()->newFromTitle(
             MediaWiki\Title\Title::newFromText( 'Charts demo' )
         )->doPurge();

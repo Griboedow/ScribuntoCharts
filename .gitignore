@@ -1,0 +1,3 @@
+tests/artifacts/
+*.log
+node_modules/

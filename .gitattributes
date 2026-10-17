@@ -1,0 +1,5 @@
+* text=auto
+*.lua text eol=lf
+*.php text eol=lf
+*.yml text eol=lf
+*.sh text eol=lf

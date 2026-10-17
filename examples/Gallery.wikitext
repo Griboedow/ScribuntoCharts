@@ -1,0 +1,51 @@
+= ScribuntoCharts =
+CSS-only charts · no JavaScript · data remains readable as text.
+
+<div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
+{{#invoke:Charts|donut
+ |title=Project budget |unit=EUR |centerlabel=Planned
+ |label1=Development |value1=5400
+ |label2=Design |value2=2100
+ |label3=Testing |value3=1500
+ |label4=Reserve |value4=1000
+ |caption=Four workstreams, one clear overview.
+}}
+{{#invoke:Charts|pie
+ |title=Traffic sources |palette=sunset
+ |label1=Search |value1=58
+ |label2=Direct |value2=24
+ |label3=Referrals |value3=18
+ |caption=Values are normalized into shares automatically.
+}}
+{{#invoke:Charts|gauge
+ |title=Storage used |value=72 |unit=%
+ |warning=60 |danger=85
+ |caption=The needle uses the full 0–100 scale.
+}}
+{{#invoke:Charts|bars
+ |title=Documentation coverage |size=320 |unit=pages
+ |label1=Getting started |value1=38
+ |label2=API reference |value2=64
+ |label3=Tutorials |value3=27
+ |caption=Bar length compares each value with the largest.
+}}
+{{#invoke:Charts|stacked
+ |title=Release pipeline |size=320 |theme=dark
+ |label1=Ready |value1=42 |color1=#2dd4bf
+ |label2=In review |value2=18 |color2=#60a5fa
+ |label3=Blocked |value3=6 |color3=#fb7185
+ |caption=One strip shows how the whole is divided.
+}}
+{{#invoke:Charts|progress
+ |title=Translation goal |value=840 |max=1200 |unit=pages |size=320
+ |color=#0d9488
+ |caption=840 of 1200 pages translated.
+}}
+</div>
+
+== Edge cases ==
+<div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
+{{#invoke:Charts|donut|title=Nothing recorded yet|value1=0|label1=Planned|value2=0|label2=Completed|size=200}}
+{{#invoke:Charts|gauge|title=Over the target|value=125|size=200|unit=%}}
+{{#invoke:Charts|gauge|title=Temperature|value=-5|min=-40|max=40|warning=10|danger=25|unit=°C|size=200}}
+</div>

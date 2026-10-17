@@ -1,0 +1,46 @@
+name: Scribunto charts
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  wiki:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        mediawiki: ['1.43', '1.44', '1.45', '1.46']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Start disposable MediaWiki
+        env:
+          MW_IMAGE: mediawiki:${{ matrix.mediawiki }}
+        run: |
+          password="$(openssl rand -hex 24)"
+          echo "::add-mask::$password"
+          docker run -d --name charts-wiki -p 127.0.0.1:8080:80 --mount "type=bind,src=$GITHUB_WORKSPACE,dst=/charts,readonly" "$MW_IMAGE"
+          docker exec charts-wiki php maintenance/install.php --dbtype sqlite --dbpath /var/www/data --server http://localhost --scriptpath '' --lang en --pass "$password" 'Charts Test' Admin
+          docker exec -i charts-wiki sh -c 'cat >> LocalSettings.php' <<'PHP'
+          wfLoadExtension( 'Scribunto' );
+          $wgScribuntoDefaultEngine = 'luastandalone';
+          PHP
+      - name: Real Scribunto and parser integration
+        run: docker exec -e MW_INSTALL_PATH=/var/www/html charts-wiki php /charts/tests/wiki.php --disposable-wiki
+      - name: Browser checks with JavaScript disabled
+        run: |
+          docker exec charts-wiki chown -R www-data:www-data /var/www/data /var/www/html/cache /var/www/html/images
+          npm run test:browser
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: charts-${{ matrix.mediawiki }}
+          path: tests/artifacts/
+      - name: Diagnostics
+        if: failure()
+        run: docker logs charts-wiki
